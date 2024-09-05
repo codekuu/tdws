@@ -32,6 +32,6 @@ See [config.go](internal/config/config.go) for the configuration struct.
 
 See [tdws-demo-module-go](https://github.com/codekuu/tdws-demo-module-go) for example and information.
 
-## Build the TDWS binary (Will be provided in each release in the future)
+## Build the TDWS binary
 
 `go build -o tdws cmd/tdws/main.go`
