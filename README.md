@@ -2,6 +2,8 @@
 
 Temporal.io Dynamic Worker Spawner (TDWS) is a temporal worker that downloads workflows and activities from a remote git repository and loads them into the worker.
 
+[![Watch the demo](./docs/demo.jpg)](https://www.youtube.com/watch?v=etANSD0tt3Y)
+
 ## Content
 
 - [Reason for TDWS](#reason-for-tdws)
