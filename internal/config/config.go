@@ -21,16 +21,19 @@ type Module struct {
 	GitConfig      GitConfig `json:"GitConfig"`
 }
 
+type TemporalConfiguration struct {
+	TaskQueue     string          `json:"TaskQueue"`     // Name of the temporal task queue
+	ClientOptions tclient.Options `json:"ClientOptions"` // Temporal client options (see https://pkg.go.dev/go.temporal.io/sdk@v1.25.1/internal#ClientOptions)
+	WorkerOptions tworker.Options `json:"WorkerOptions"` // Temporal worker options (see https://pkg.go.dev/go.temporal.io/sdk@v1.25.1/internal#WorkerOptions)
+}
+
 // TDWS configuration
 type Config struct {
-	AlwaysDownloadModules bool            `json:"AlwaysDownloadModules"` // Always download the modules even if they are already downloaded (if not it will only download if the module doesnt exist)
-	TemporalWorkerName    string          `json:"TemporalWorkerName"`    // Name of the temporal worker, this will replace tworker.Options.Identity (TemporalWorkerOptions.Identity)
-	TemporalTaskQueue     string          `json:"TemporalTaskQueue"`     // Name of the temporal task queue
-	TemporalClientOptions tclient.Options `json:"TemporalClientOptions"` // Temporal client options (see https://pkg.go.dev/go.temporal.io/sdk@v1.25.1/internal#ClientOptions)
-	TemporalWorkerOptions tworker.Options `json:"TemporalWorkerOptions"` // Temporal worker options (see https://pkg.go.dev/go.temporal.io/sdk@v1.25.1/internal#WorkerOptions)
-	Storage               string          `json:"Storage"`               // Where to git clone the repositories (modules)
-	GitConfig             GitConfig       `json:"GitConfig"`             // Git configuration, will be used to clone the repositories if not provided in the module
-	Modules               []Module        `json:"Modules"`               // Modules to be cloned
+	AlwaysDownloadModules bool                  `json:"AlwaysDownloadModules"` // Always download the modules even if they are already downloaded (if not it will only download if the module doesnt exist)
+	Storage               string                `json:"Storage"`               // Where to git clone the repositories (Modules)
+	Temporal              TemporalConfiguration `json:"Temporal"`              // Temporal configuration
+	GitConfig             GitConfig             `json:"GitConfig"`             // Git configuration, will be used to clone the repositories if not provided in the module
+	Modules               []Module              `json:"Modules"`               // Modules to be cloned
 }
 
 // LoadConfig loads the configuration from the configuration file
@@ -49,10 +52,14 @@ func LoadConfig() Config {
 
 	// Base configuration
 	config := Config{
-		TemporalWorkerName: "tdws-worker",
-		TemporalTaskQueue:  "tdws-task-queue",
-		TemporalClientOptions: tclient.Options{
-			HostPort: "temporal:7233",
+		Temporal: TemporalConfiguration{
+			TaskQueue: "tdws-task-queue",
+			ClientOptions: tclient.Options{
+				HostPort: "temporal:7233",
+			},
+			WorkerOptions: tworker.Options{
+				Identity: "tdws-worker",
+			},
 		},
 		Storage: "tdws-storage",
 		GitConfig: GitConfig{
