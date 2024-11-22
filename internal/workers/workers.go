@@ -8,7 +8,5 @@ import (
 
 func Start(cfg config.Config) {
 	log.Info().Msg("Starting the worker")
-	// Set the identity of the worker
-	cfg.TemporalWorkerOptions.Identity = cfg.TemporalWorkerName
 	StartWorkerGo(cfg)
 }

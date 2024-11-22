@@ -1,10 +1,11 @@
 {
   "AlwaysDownloadModules": true,
-  "TemporalWorkerName": "tdws-demo-worker",
-  "TemporalTaskQueue": "tdws-demo",
   "Storage": "tdws-storage",
-  "TemporalClientOptions": {
-    "HostPort": "localhost:7233"
+  "Temporal": {
+    "TaskQueue": "tdws-demo",
+    "ClientOptions": {
+      "HostPort": "localhost:7233"
+    }
   },
   "GitConfig": {
     "Username": "YOUR_GIT_USERNAME",

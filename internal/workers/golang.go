@@ -68,14 +68,14 @@ func StartWorkerGo(cfg config.Config) {
 	log.Info().Msg("Starting the Go worker")
 
 	// Create the client object just once per process
-	c, err := client.Dial(cfg.TemporalClientOptions)
+	c, err := client.Dial(cfg.Temporal.ClientOptions)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to create Temporal client")
 	}
 	defer c.Close()
 
 	// This worker hosts both Workflow and Activity functions
-	w := worker.New(c, cfg.TemporalTaskQueue, cfg.TemporalWorkerOptions)
+	w := worker.New(c, cfg.Temporal.TaskQueue, cfg.Temporal.WorkerOptions)
 
 	// Register the workflows and activities
 	modulesInStorage := storage.GetModulePaths(cfg)
