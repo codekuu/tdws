@@ -11,7 +11,6 @@ import (
 
 	"github.com/codekuu/tdws/internal/config"
 	"github.com/codekuu/tdws/internal/module"
-	"github.com/codekuu/tdws/internal/storage"
 )
 
 func dynamicRegister(w worker.Worker, pluginPath string) {
@@ -77,9 +76,7 @@ func StartWorkerGo(cfg config.Config) {
 	// This worker hosts both Workflow and Activity functions
 	w := worker.New(c, cfg.Temporal.TaskQueue, cfg.Temporal.WorkerOptions)
 
-	// Register the workflows and activities
-	modulesInStorage := storage.GetModulePaths(cfg)
-	LoadRegisterModules(modulesInStorage, w)
+	LoadRegisterModules(config.ModulesInStorage, w)
 
 	// Start listening to the Task Queue
 	err = w.Run(worker.InterruptCh())

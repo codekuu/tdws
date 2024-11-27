@@ -1,10 +1,12 @@
 package config
 
 import (
-	"encoding/json"
 	"os"
+	"path"
+	"strings"
 
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 	tclient "go.temporal.io/sdk/client"
 	tworker "go.temporal.io/sdk/worker"
 )
@@ -19,6 +21,7 @@ type Module struct {
 	SubStorage     string    `json:"SubStorage"`     // Sub storage to store the module
 	ModuleLocation string    `json:"ModuleLocation"` // Path to the module in the git repository
 	GitConfig      GitConfig `json:"GitConfig"`
+	Branch         string    `json:"Branch"` // Branch to clone
 }
 
 type TemporalConfiguration struct {
@@ -36,51 +39,44 @@ type Config struct {
 	Modules               []Module              `json:"Modules"`               // Modules to be cloned
 }
 
-// LoadConfig loads the configuration from the configuration file
-func LoadConfig() Config {
-	// Load the configuration file tdws.json or TDWS_CONFIG_FILE environment variable
-	tdwsFileName := os.Getenv("TDWS_CONFIG_FILE")
-	if tdwsFileName == "" {
-		tdwsFileName = "tdws.json"
-	}
+var (
+	CfgFile          string
+	TdwsConfig       Config
+	ModulesInStorage []string
+)
 
-	// Open the configuration file
-	jsonFile, err := os.Open(tdwsFileName)
-	if err != nil {
+func Init() {
+	viper.SetConfigFile(CfgFile)
+
+	viper.AutomaticEnv()
+	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal().Err(err).Msg("Failed to read the configuration file")
+		os.Exit(1)
 	}
 
-	// Base configuration
-	config := Config{
-		Temporal: TemporalConfiguration{
-			TaskQueue: "tdws-task-queue",
-			ClientOptions: tclient.Options{
-				HostPort: "temporal:7233",
-			},
-			WorkerOptions: tworker.Options{
-				Identity: "tdws-worker",
-			},
-		},
-		Storage: "tdws-storage",
-		GitConfig: GitConfig{
-			Insecure: false,
-		},
+	if err := viper.Unmarshal(&TdwsConfig); err != nil {
+		log.Fatal().Err(err).Msg("Failed to unmarshal the configuration")
+		os.Exit(1)
 	}
 
-	// Load the configuration from the json and update the base configuration
-	err = json.NewDecoder(jsonFile).Decode(&config)
-	if err != nil {
-		// log config struct
-		log.Fatal().Err(err).Msg("Failed to decode the configuration file")
+	ModulesInStorage = getModulePaths()
+}
+
+// Returns a list of all modules in the storage with full path
+func getModulePaths() []string {
+	modules := []string{}
+	for _, mod := range TdwsConfig.Modules {
+		modulePath := GetPathFromModule(mod)
+		modules = append(modules, modulePath)
 	}
+	return modules
+}
 
-	// Create storage if it doesn't exist
-	if _, err := os.Stat(config.Storage); os.IsNotExist(err) {
-		os.Mkdir(config.Storage, 0755)
-	}
+// Returns the path of the module
+func GetPathFromModule(module Module) string {
+	parts := strings.Split(module.GitUrl, "/")
+	repoNameWithExt := parts[len(parts)-1]
+	repoName := strings.Split(repoNameWithExt, ".")[0]
 
-	// Log the configuration loaded
-	log.Info().Interface("config", json.NewDecoder(jsonFile)).Msg("Configuration loaded")
-
-	return config
+	return path.Join(TdwsConfig.Storage, module.SubStorage, repoName, module.ModuleLocation)
 }
