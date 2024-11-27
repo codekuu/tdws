@@ -40,8 +40,9 @@ type Config struct {
 }
 
 var (
-	CfgFile          string
-	TdwsConfig       Config
+	CfgFile    string
+	TdwsConfig Config
+	// List of all modules in the storage with full path
 	ModulesInStorage []string
 )
 
@@ -79,4 +80,13 @@ func GetPathFromModule(module Module) string {
 	repoName := strings.Split(repoNameWithExt, ".")[0]
 
 	return path.Join(TdwsConfig.Storage, module.SubStorage, repoName, module.ModuleLocation)
+}
+
+// Returns the path of the git repository
+func GetGitPathFromModule(module Module) string {
+	parts := strings.Split(module.GitUrl, "/")
+	repoNameWithExt := parts[len(parts)-1]
+	repoName := strings.Split(repoNameWithExt, ".")[0]
+
+	return path.Join(TdwsConfig.Storage, module.SubStorage, repoName)
 }

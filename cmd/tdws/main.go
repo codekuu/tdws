@@ -20,10 +20,10 @@ var (
 		Long:  "Temporal.io Dynamic Worker Spawner (TDWS) is a temporal worker that downloads workflows and activities from a remote git repository and loads them into the worker.",
 		Run: func(cmd *cobra.Command, args []string) {
 			// Download the Workflows and Activities
-			download.WorkflowsActivities(config.TdwsConfig)
+			download.WorkflowsActivities()
 
 			// Start the workers
-			workers.Start(config.TdwsConfig)
+			workers.Start()
 		},
 	}
 )

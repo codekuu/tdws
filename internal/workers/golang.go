@@ -36,11 +36,11 @@ func dynamicRegister(w worker.Worker, pluginPath string) {
 	}
 }
 
-// Load and register the modules into the worker in parallel
-func LoadRegisterModules(modulesInStorage []string, w worker.Worker) {
-	log.Info().Msgf("Found %d modules in the storage, loading them into the worker...", len(modulesInStorage))
+// Load and register the modules into the worker in parallel go routines
+func loadGoRegisterModules(w worker.Worker) {
+	log.Info().Msgf("Found %d modules in the storage, loading them into the worker...", len(config.ModulesInStorage))
 	var wg sync.WaitGroup
-	for _, modulePath := range modulesInStorage {
+	for _, modulePath := range config.ModulesInStorage {
 		wg.Add(1)
 		go func(modulePath string) {
 			defer wg.Done()
@@ -63,20 +63,21 @@ func LoadRegisterModules(modulesInStorage []string, w worker.Worker) {
 }
 
 // StartWorkerGo starts the Go worker
-func StartWorkerGo(cfg config.Config) {
+func StartWorkerGo() {
 	log.Info().Msg("Starting the Go worker")
 
 	// Create the client object just once per process
-	c, err := client.Dial(cfg.Temporal.ClientOptions)
+	config.TdwsConfig.Temporal.ClientOptions.Identity = config.TdwsConfig.Temporal.ClientOptions.Identity + "-go"
+	c, err := client.Dial(config.TdwsConfig.Temporal.ClientOptions)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to create Temporal client")
 	}
 	defer c.Close()
 
 	// This worker hosts both Workflow and Activity functions
-	w := worker.New(c, cfg.Temporal.TaskQueue, cfg.Temporal.WorkerOptions)
+	w := worker.New(c, config.TdwsConfig.Temporal.TaskQueue, config.TdwsConfig.Temporal.WorkerOptions)
 
-	LoadRegisterModules(config.ModulesInStorage, w)
+	loadGoRegisterModules(w)
 
 	// Start listening to the Task Queue
 	err = w.Run(worker.InterruptCh())

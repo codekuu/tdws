@@ -122,16 +122,16 @@ func checkOutBranch(storage string, branch string) {
 	}
 }
 
-func WorkflowsActivities(cfg config.Config) {
+func WorkflowsActivities() {
 	// Check if there is any modules to download
-	if len(cfg.Modules) == 0 {
+	if len(config.TdwsConfig.Modules) == 0 {
 		log.Info().Msg("No modules to download")
 		return
 	}
 
 	// Download the modules in parallel
 	var wg sync.WaitGroup
-	for _, mod := range cfg.Modules {
+	for _, mod := range config.TdwsConfig.Modules {
 		// Check if the path is set
 		if mod.GitUrl == "" {
 			log.Fatal().Msgf("Path is not set for one of the modules")
@@ -139,29 +139,30 @@ func WorkflowsActivities(cfg config.Config) {
 
 		// If the item.GitConfig is not set, use the global git config
 		if mod.GitConfig == (config.GitConfig{}) {
-			mod.GitConfig = cfg.GitConfig
+			mod.GitConfig = config.TdwsConfig.GitConfig
 		}
 
 		// Skip the module if it is already downloaded
-		storagePath := config.GetPathFromModule(mod)
-		storagePathMainGo := storagePath + "/main.go"
-		if _, err := os.Stat(storagePathMainGo); err == nil {
-			if cfg.AlwaysDownloadModules {
+		modulePath := config.GetPathFromModule(mod)
+		modulePathMainGo := modulePath + "/main.go"
+		if _, err := os.Stat(modulePathMainGo); err == nil {
+			if config.TdwsConfig.AlwaysDownloadModules {
 				log.Info().Msgf("Module %s is already downloaded, deleting the old one", mod.GitUrl)
-				os.RemoveAll(storagePath)
+				os.RemoveAll(modulePath)
 			} else {
 				log.Info().Msgf("Module %s is already downloaded, wont download", mod.GitUrl)
 				continue
 			}
 		}
+		module.GetMetadata(modulePath)
 
 		wg.Add(1)
 		go func(mod config.Module) {
 			defer wg.Done()
-			storagePath := module.GetPathGitPathFromModule(cfg, mod)
-			cloneRepository(mod.GitUrl, mod.GitConfig, storagePath)
+			modulePath := config.GetGitPathFromModule(mod)
+			cloneRepository(mod.GitUrl, mod.GitConfig, modulePath)
 			if mod.Branch != "" {
-				checkOutBranch(storagePath, mod.Branch)
+				checkOutBranch(modulePath, mod.Branch)
 			}
 		}(mod)
 		// Wait for the go routines to finish
