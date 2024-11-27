@@ -11,5 +11,5 @@ type ModuleMetadata struct {
 }
 
 var (
-	SupportedLangs = []string{"go", "python"} // Supported languages
+	SupportedLangs = []string{"go"} // Supported languages
 )

@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path"
 	"slices"
-	"strings"
 
 	"github.com/rs/zerolog/log"
 
@@ -84,13 +83,4 @@ func Delete(modulePath string) {
 func IsBuilt(modulePath string) bool {
 	_, err := os.Stat(path.Join(modulePath, "main.so"))
 	return err == nil
-}
-
-// Returns the path of the git repository
-func GetPathGitPathFromModule(cfg config.Config, module config.Module) string {
-	parts := strings.Split(module.GitUrl, "/")
-	repoNameWithExt := parts[len(parts)-1]
-	repoName := strings.Split(repoNameWithExt, ".")[0]
-
-	return path.Join(cfg.Storage, module.SubStorage, repoName)
 }
