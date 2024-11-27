@@ -1,16 +1,55 @@
 package download
 
 import (
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"sync"
 
 	git "github.com/go-git/go-git/v5"
-	http "github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/plumbing"
+	httpproto "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/rs/zerolog/log"
 
 	"github.com/codekuu/tdws/internal/config"
 	"github.com/codekuu/tdws/internal/module"
 )
+
+// configFIle returns the filepath of the downloaded configuration file
+func ConfigFile(configFileUrl string) string {
+	// Parse the URL
+	u, err := url.Parse(configFileUrl)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to parse the URL")
+	}
+	// Get the filename
+	filename := u.Path
+	if filename == "" {
+		log.Fatal().Msg("No filename in the URL")
+	}
+	// Open the file
+	file, err := os.Create(filename)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create the file")
+	}
+	// Close the file
+	defer file.Close()
+	// Download the file
+	resp, err := http.Get(configFileUrl)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to download the file")
+	}
+	// Close the response
+	defer resp.Body.Close()
+	// Copy the response to the file
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to copy the response to the file")
+	}
+
+	return filename
+}
 
 func cloneRepository(gitURL string, gitConfig config.GitConfig, storage string) {
 	// Make sure gitURL ends with .git
@@ -30,10 +69,11 @@ func cloneRepository(gitURL string, gitConfig config.GitConfig, storage string) 
 	cloneOptions := &git.CloneOptions{
 		URL:             gitURL,
 		InsecureSkipTLS: gitConfig.Insecure,
+		Auth:            nil,
 		Progress:        os.Stdout,
 	}
 	if gitConfig.Username != "" && gitConfig.Password != "" {
-		cloneOptions.Auth = &http.BasicAuth{
+		cloneOptions.Auth = &httpproto.BasicAuth{
 			Username: gitConfig.Username,
 			Password: gitConfig.Password,
 		}
@@ -44,6 +84,41 @@ func cloneRepository(gitURL string, gitConfig config.GitConfig, storage string) 
 		// Delete the directory if the clone failed
 		os.RemoveAll(storage)
 		log.Fatal().Err(err).Msgf("Failed to clone the repository %s", gitURL)
+	}
+}
+
+func getBranches(repo *git.Repository) []string {
+	// Get the branches
+	refs, err := repo.Branches()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to get the branches")
+	}
+	// Get the branch names
+	var branches []string
+	refs.ForEach(func(ref *plumbing.Reference) error {
+		branches = append(branches, ref.Name().Short())
+		return nil
+	})
+	return branches
+}
+
+func checkOutBranch(storage string, branch string) {
+	// Open the repository
+	repo, err := git.PlainOpen(storage)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed to open the repository %s", storage)
+	}
+	// Get the worktree
+	wt, err := repo.Worktree()
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed to get the worktree for the repository %s", storage)
+	}
+	// Check out the branch
+	err = wt.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.ReferenceName(branch),
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed to checkout the branch %s, branches that exists: %v", branch, getBranches(repo))
 	}
 }
 
@@ -68,7 +143,7 @@ func WorkflowsActivities(cfg config.Config) {
 		}
 
 		// Skip the module if it is already downloaded
-		storagePath := module.GetPathFromModule(cfg, mod)
+		storagePath := config.GetPathFromModule(mod)
 		storagePathMainGo := storagePath + "/main.go"
 		if _, err := os.Stat(storagePathMainGo); err == nil {
 			if cfg.AlwaysDownloadModules {
@@ -85,6 +160,9 @@ func WorkflowsActivities(cfg config.Config) {
 			defer wg.Done()
 			storagePath := module.GetPathGitPathFromModule(cfg, mod)
 			cloneRepository(mod.GitUrl, mod.GitConfig, storagePath)
+			if mod.Branch != "" {
+				checkOutBranch(storagePath, mod.Branch)
+			}
 		}(mod)
 		// Wait for the go routines to finish
 		wg.Wait()

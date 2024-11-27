@@ -80,12 +80,3 @@ func GetPathGitPathFromModule(cfg config.Config, module config.Module) string {
 
 	return path.Join(cfg.Storage, module.SubStorage, repoName)
 }
-
-// Returns the path of the module
-func GetPathFromModule(cfg config.Config, module config.Module) string {
-	parts := strings.Split(module.GitUrl, "/")
-	repoNameWithExt := parts[len(parts)-1]
-	repoName := strings.Split(repoNameWithExt, ".")[0]
-
-	return path.Join(cfg.Storage, module.SubStorage, repoName, module.ModuleLocation)
-}

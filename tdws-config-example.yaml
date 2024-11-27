@@ -1,0 +1,12 @@
+AlwaysDownloadModules: true
+Storage: tdws-storage
+Temporal:
+  TaskQueue: tdws-demo
+  ClientOptions:
+    HostPort: localhost:7233
+GitConfig:
+  Username: YOUR_GIT_USERNAME
+  Password: YOUR_GIT_PASSWORD
+Modules:
+  - GitUrl: github.com/codekuu/tdws-demo-module-go
+    Branch: master

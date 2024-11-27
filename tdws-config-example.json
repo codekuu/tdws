@@ -13,7 +13,8 @@
   },
   "Modules": [
     {
-      "GitUrl": "github.com/codekuu/tdws-demo-module-go"
+      "GitUrl": "github.com/codekuu/tdws-demo-module-go",
+      "Branch": "master"
     }
   ]
 }
